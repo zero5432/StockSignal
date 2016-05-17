@@ -89,6 +89,10 @@ namespace StockSignal
             SIGNAL_POINT_SELL_1_LOSE,   // グラフ1 売りシグナル 勝ち
             SIGNAL_POINT_BUY_2,
             SIGNAL_POINT_SELL_2,
+            SIGNAL_POINT_BUY_2_WIN,
+            SIGNAL_POINT_BUY_2_LOSE,
+            SIGNAL_POINT_SELL_2_WIN,
+            SIGNAL_POINT_SELL_2_LOSE,
         };
 
         public Form1()
@@ -572,9 +576,10 @@ namespace StockSignal
         /// <returns></returns>
         private DateTime ConvertStringToDateTime(string str)
         {
-            string date = str.Insert(6, "/");
-            date = date.Insert(4, "/");
-            return DateTime.Parse(date);
+            //string date = str.Insert(6, "/");
+            //date = date.Insert(4, "/");
+            //return DateTime.Parse(date);
+            return DateTime.Parse(str);
         }
 
         private void SetChart1()
@@ -638,8 +643,15 @@ e:#VALY4";
             SetTypeLineSeries(this.chart1, GetEnumName(keyWd.MACD_SIG), "date", "ChartArea2");
 
             // シグナル表示のポイントグラフ設定
+#if false
             SetTypePointSeries(this.chart1, GetEnumName(keyWd.SIGNAL_POINT_BUY_2), "date", MarkerStyle.Circle, Color.Red, "ChartArea2");
             SetTypePointSeries(this.chart1, GetEnumName(keyWd.SIGNAL_POINT_SELL_2), "date", MarkerStyle.Cross, Color.Blue, "ChartArea2");
+#else
+            SetTypePointSeries(this.chart1, GetEnumName(keyWd.SIGNAL_POINT_BUY_2_WIN), "date", MarkerStyle.Circle, Color.Black, "ChartArea2");
+            SetTypePointSeries(this.chart1, GetEnumName(keyWd.SIGNAL_POINT_BUY_2_LOSE), "date", MarkerStyle.Circle, Color.Red, "ChartArea2");
+            SetTypePointSeries(this.chart1, GetEnumName(keyWd.SIGNAL_POINT_SELL_2_WIN), "date", MarkerStyle.Cross, Color.Black, "ChartArea2");
+            SetTypePointSeries(this.chart1, GetEnumName(keyWd.SIGNAL_POINT_SELL_2_LOSE), "date", MarkerStyle.Cross, Color.Red, "ChartArea2");
+#endif
 
             // 表示領域調整
             this.chart1.ChartAreas[1].InnerPlotPosition.Auto = false;
@@ -874,10 +886,32 @@ e:#VALY4";
                     if (wariai >= rieki)
                     {
                         winLose = buy == true ? keyWd.SIGNAL_POINT_BUY_1_WIN : keyWd.SIGNAL_POINT_SELL_1_WIN;
+                        //@@@
+                        DataRow arow = this.periodData.Rows.Find(tgtDateStr);
+                        if (buy == true)
+                        {
+                            arow[GetEnumName(keyWd.SIGNAL_POINT_BUY_2_WIN)] = arow[GetEnumName(keyWd.SIGNAL_POINT_BUY_2)];
+                        }
+                        else
+                        {
+                            arow[GetEnumName(keyWd.SIGNAL_POINT_SELL_2_WIN)] = arow[GetEnumName(keyWd.SIGNAL_POINT_SELL_2)];
+                        }
+                        //@@@
                     }
                     else
                     {
                         winLose = buy == true ? keyWd.SIGNAL_POINT_BUY_1_LOSE : keyWd.SIGNAL_POINT_SELL_1_LOSE;
+                        //@@@
+                        DataRow brow = this.periodData.Rows.Find(tgtDateStr);
+                        if (buy == true)
+                        {
+                            brow[GetEnumName(keyWd.SIGNAL_POINT_BUY_2_LOSE)] = brow[GetEnumName(keyWd.SIGNAL_POINT_BUY_2)];
+                        }
+                        else
+                        {
+                            brow[GetEnumName(keyWd.SIGNAL_POINT_SELL_2_LOSE)] = brow[GetEnumName(keyWd.SIGNAL_POINT_SELL_2)];
+                        }
+                        //@@@
                     }
                     dtEnd = (DateTime)rowAry[i][GetEnumName(keyWd.DATE)];
                     int span = ((TimeSpan)(dtEnd - dttgtDate)).Days;
@@ -889,6 +923,17 @@ e:#VALY4";
                         {
                             sonneki *= -1;
                         }
+                        //@@@
+                        DataRow brow = this.periodData.Rows.Find(tgtDateStr);
+                        if (buy == true)
+                        {
+                            brow[GetEnumName(keyWd.SIGNAL_POINT_BUY_2_LOSE)] = brow[GetEnumName(keyWd.SIGNAL_POINT_BUY_2)];
+                        }
+                        else
+                        {
+                            brow[GetEnumName(keyWd.SIGNAL_POINT_SELL_2_LOSE)] = brow[GetEnumName(keyWd.SIGNAL_POINT_SELL_2)];
+                        }
+                        //@@@
                     }
                     break;
                 }
@@ -978,6 +1023,7 @@ e:#VALY4";
             // データ取得
             string[] allTxtAry = File.ReadAllText(this.textBoxInput.Text, System.Text.Encoding.GetEncoding("shift-jis")).Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
             List<Data> dataList = new List<Data>();
+#if false
             foreach (string line in allTxtAry)
             {
                 if (String.IsNullOrEmpty(line.Trim()) == true)
@@ -989,7 +1035,19 @@ e:#VALY4";
                 Data data = new Data { date = str[0], start = int.Parse(str[1]), max = int.Parse(str[2]), min = int.Parse(str[3]), end = int.Parse(str[4]), volume = int.Parse(str[5]) };
                 dataList.Add(data);
             }
+#else
+            for (int i=1; i<allTxtAry.Length; i++)
+            {
+                if (String.IsNullOrEmpty(allTxtAry[i].Trim()) == true)
+                {
+                    continue;
+                }
+                string[] str = allTxtAry[i].Split(new string[] { ",", ";" }, StringSplitOptions.None);
 
+                Data data = new Data { date = str[0], start = int.Parse(str[1]), max = int.Parse(str[2]), min = int.Parse(str[3]), end = int.Parse(str[4]), volume = int.Parse(str[5]) };
+                dataList.Add(data);
+            }
+#endif
             this.dateTimePicker1.Enabled = this.dateTimePicker2.Enabled = this.dateTimePicker3.Enabled = true;
             this.dateTimePicker1.Value = ConvertStringToDateTime(dataList[0].date);
             this.dateTimePicker2.Value = ConvertStringToDateTime(dataList[dataList.Count - 1].date);
