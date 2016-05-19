@@ -28,9 +28,9 @@
         /// </summary>
         private void InitializeComponent()
         {
-            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea3 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
-            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea4 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
-            System.Windows.Forms.DataVisualization.Charting.Legend legend2 = new System.Windows.Forms.DataVisualization.Charting.Legend();
+            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea1 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
+            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea2 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
+            System.Windows.Forms.DataVisualization.Charting.Legend legend1 = new System.Windows.Forms.DataVisualization.Charting.Legend();
             this.buttonRun = new System.Windows.Forms.Button();
             this.buttonClose = new System.Windows.Forms.Button();
             this.chart1 = new System.Windows.Forms.DataVisualization.Charting.Chart();
@@ -57,6 +57,7 @@
             this.buttonInput = new System.Windows.Forms.Button();
             this.textBoxInput = new System.Windows.Forms.TextBox();
             this.buttonLoad = new System.Windows.Forms.Button();
+            this.checkBoxCandle = new System.Windows.Forms.CheckBox();
             ((System.ComponentModel.ISupportInitialize)(this.chart1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown1)).BeginInit();
@@ -97,12 +98,12 @@
             this.chart1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            chartArea3.Name = "ChartArea1";
-            chartArea4.Name = "ChartArea2";
-            this.chart1.ChartAreas.Add(chartArea3);
-            this.chart1.ChartAreas.Add(chartArea4);
-            legend2.Name = "Legend1";
-            this.chart1.Legends.Add(legend2);
+            chartArea1.Name = "ChartArea1";
+            chartArea2.Name = "ChartArea2";
+            this.chart1.ChartAreas.Add(chartArea1);
+            this.chart1.ChartAreas.Add(chartArea2);
+            legend1.Name = "Legend1";
+            this.chart1.Legends.Add(legend1);
             this.chart1.Location = new System.Drawing.Point(12, 12);
             this.chart1.Name = "chart1";
             this.chart1.Size = new System.Drawing.Size(847, 605);
@@ -364,6 +365,7 @@
             // panel1
             // 
             this.panel1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.panel1.Controls.Add(this.checkBoxCandle);
             this.panel1.Controls.Add(this.buttonInput);
             this.panel1.Controls.Add(this.textBoxInput);
             this.panel1.Controls.Add(this.numericUpDown1);
@@ -410,6 +412,20 @@
             this.buttonLoad.Text = "Load";
             this.buttonLoad.UseVisualStyleBackColor = true;
             this.buttonLoad.Click += new System.EventHandler(this.buttonLoad_Click);
+            // 
+            // checkBoxCandle
+            // 
+            this.checkBoxCandle.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.checkBoxCandle.AutoSize = true;
+            this.checkBoxCandle.Checked = true;
+            this.checkBoxCandle.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.checkBoxCandle.Location = new System.Drawing.Point(719, 37);
+            this.checkBoxCandle.Name = "checkBoxCandle";
+            this.checkBoxCandle.Size = new System.Drawing.Size(72, 16);
+            this.checkBoxCandle.TabIndex = 30;
+            this.checkBoxCandle.Text = "ローソク足";
+            this.checkBoxCandle.UseVisualStyleBackColor = true;
+            this.checkBoxCandle.CheckedChanged += new System.EventHandler(this.checkBoxCandle_CheckedChanged);
             // 
             // Form1
             // 
@@ -480,6 +496,7 @@
         private System.Windows.Forms.Button buttonInput;
         private System.Windows.Forms.TextBox textBoxInput;
         private System.Windows.Forms.Button buttonLoad;
+        private System.Windows.Forms.CheckBox checkBoxCandle;
     }
 }
 

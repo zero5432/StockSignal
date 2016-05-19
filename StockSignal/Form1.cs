@@ -288,6 +288,7 @@ namespace StockSignal
                 DataRow tmpr = data4Grid.NewRow();
                 tmpr[GetEnumName(keyWd.SIGNAL)] = r[GetEnumName(keyWd.SIGNAL)];
                 tmpr[GetEnumName(keyWd.DATE)] = r[GetEnumName(keyWd.DATE)];
+                string datestr = ((DateTime)r[GetEnumName(keyWd.DATE)]).ToString("yyyy/MM/dd");
                 tmpr["取得価格"] = r[GetEnumName(keyWd.END)];
                 data4Grid.Rows.Add(tmpr);
 
@@ -505,6 +506,9 @@ namespace StockSignal
                     prevMacdSig = todayMacd;
                 }
                 int todayMacdSig = GetEMA(prevMacdSig, todayMacd, alpha9);
+                //@@@
+                string datestr = ((DateTime)r[GetEnumName(keyWd.DATE)]).ToString("yyyy/MM/dd");
+                //@@@
 
                 // シグナル算出
                 string signal = string.Empty;
@@ -586,37 +590,40 @@ namespace StockSignal
         {
             this.chart1.Series.Clear();
 
-            // 株価
-            string price = GetEnumName(keyWd.PRICE);
-            this.chart1.Series.Add(price);
-            this.chart1.Series[price].ChartType = SeriesChartType.Candlestick;
-            this.chart1.Series[price].XValueType = ChartValueType.Date;
-            this.chart1.Series[price].XValueMember = "date";
-            this.chart1.Series[price].YValueType = ChartValueType.Int32;
-            this.chart1.Series[price].YValueMembers = string.Format("{0},{1},{2},{3}", "max", "min", "start", "end");
-            this.chart1.Series[price].SetCustomProperty("PriceUpColor", "Red");
-            this.chart1.Series[price].SetCustomProperty("PriceDownColor", "Blue");
-            this.chart1.Series[price].IsXValueIndexed = true;
-            this.chart1.Series[price].ToolTip = @"#VALX{d}
+            if (this.checkBoxCandle.Checked == true)
+            {
+                // 株価
+                string price = GetEnumName(keyWd.PRICE);
+                this.chart1.Series.Add(price);
+                this.chart1.Series[price].ChartType = SeriesChartType.Candlestick;
+                this.chart1.Series[price].XValueType = ChartValueType.Date;
+                this.chart1.Series[price].XValueMember = "date";
+                this.chart1.Series[price].YValueType = ChartValueType.Int32;
+                this.chart1.Series[price].YValueMembers = string.Format("{0},{1},{2},{3}", "max", "min", "start", "end");
+                this.chart1.Series[price].SetCustomProperty("PriceUpColor", "Red");
+                this.chart1.Series[price].SetCustomProperty("PriceDownColor", "Blue");
+                this.chart1.Series[price].IsXValueIndexed = true;
+                this.chart1.Series[price].ToolTip = @"#VALX{d}
 Max:#VALY1
 min:#VALY2
 s:#VALY3
 e:#VALY4";
+            }
             //// EMA12(default=12)
             //SetTypeLineSeries(this.chart1, GetEnumName(keyWd.EMA1), "date");
 
             //// EMA26(default=26)
             //SetTypeLineSeries(this.chart1, GetEnumName(keyWd.EMA2), "date");
-            SetTypeLineSeries(this.chart1, GetEnumName(keyWd.EMA8), "date", "ChartArea1");
+            SetTypeLineSeries(this.chart1, GetEnumName(keyWd.EMA8), "date", "ChartArea1", null);
 
             // 20日移動平均とボリンジャーバンド
             if (this.checkBoxBollingerband.Checked == true)
             {
-                SetTypeLineSeries(this.chart1, GetEnumName(keyWd.SMA20), "date", "ChartArea1");
-                SetTypeLineSeries(this.chart1, GetEnumName(keyWd.BB_MINUS1), "date", "ChartArea1");
-                SetTypeLineSeries(this.chart1, GetEnumName(keyWd.BB_MINUS2), "date", "ChartArea1");
-                SetTypeLineSeries(this.chart1, GetEnumName(keyWd.BB_PLUS1), "date", "ChartArea1");
-                SetTypeLineSeries(this.chart1, GetEnumName(keyWd.BB_PLUS2), "date", "ChartArea1");
+                SetTypeLineSeries(this.chart1, GetEnumName(keyWd.SMA20), "date", "ChartArea1", null);
+                SetTypeLineSeries(this.chart1, GetEnumName(keyWd.BB_MINUS1), "date", "ChartArea1", null);
+                SetTypeLineSeries(this.chart1, GetEnumName(keyWd.BB_MINUS2), "date", "ChartArea1", null);
+                SetTypeLineSeries(this.chart1, GetEnumName(keyWd.BB_PLUS1), "date", "ChartArea1", null);
+                SetTypeLineSeries(this.chart1, GetEnumName(keyWd.BB_PLUS2), "date", "ChartArea1", null);
             }
 
             // シグナル表示のポイントグラフ設定
@@ -624,10 +631,6 @@ e:#VALY4";
             SetTypePointSeries(this.chart1, GetEnumName(keyWd.SIGNAL_POINT_BUY_1_LOSE), "date", MarkerStyle.Circle, Color.Black, "ChartArea1");
             SetTypePointSeries(this.chart1, GetEnumName(keyWd.SIGNAL_POINT_SELL_1_WIN), "date", MarkerStyle.Triangle, Color.Green, "ChartArea1");
             SetTypePointSeries(this.chart1, GetEnumName(keyWd.SIGNAL_POINT_SELL_1_LOSE), "date", MarkerStyle.Triangle, Color.Black, "ChartArea1");
-            this.chart1.Series[GetEnumName(keyWd.SIGNAL_POINT_BUY_1_WIN)].ToolTip = @"#VALX{d} #VALY";
-            this.chart1.Series[GetEnumName(keyWd.SIGNAL_POINT_BUY_1_LOSE)].ToolTip = @"#VALX{d} #VALY";
-            this.chart1.Series[GetEnumName(keyWd.SIGNAL_POINT_SELL_1_WIN)].ToolTip = @"#VALX{d} #VALY";
-            this.chart1.Series[GetEnumName(keyWd.SIGNAL_POINT_SELL_1_LOSE)].ToolTip = @"#VALX{d} #VALY";
 
 
             //// 表示領域調整
@@ -639,8 +642,8 @@ e:#VALY4";
 
 
             // MACD表示のグラフ設定
-            SetTypeLineSeries(this.chart1, GetEnumName(keyWd.MACD), "date", "ChartArea2");
-            SetTypeLineSeries(this.chart1, GetEnumName(keyWd.MACD_SIG), "date", "ChartArea2");
+            SetTypeLineSeries(this.chart1, GetEnumName(keyWd.MACD), "date", "ChartArea2", Color.Purple);
+            SetTypeLineSeries(this.chart1, GetEnumName(keyWd.MACD_SIG), "date", "ChartArea2", Color.Green);
 
             // シグナル表示のポイントグラフ設定
 #if false
@@ -669,7 +672,7 @@ e:#VALY4";
         /// <param name="seriesKey"></param>
         /// <param name="xvalMember"></param>
         /// <param name="yvalMember"></param>
-        void SetTypeLineSeries(Chart chart, string seriesKey, string xvalMember, string chartArea)
+        void SetTypeLineSeries(Chart chart, string seriesKey, string xvalMember, string chartArea, Color? color)
         {
             chart.Series.Add(seriesKey);
             chart.Series[seriesKey].ChartType = SeriesChartType.Line;
@@ -679,6 +682,10 @@ e:#VALY4";
             chart.Series[seriesKey].YValueMembers = seriesKey;
             chart.Series[seriesKey].IsXValueIndexed = true;
             chart.Series[seriesKey].ChartArea = chartArea;
+            if (color != null)
+            {
+                chart.Series[seriesKey].Color = (Color)color;
+            }
         }
 
         /// <summary>
@@ -701,6 +708,7 @@ e:#VALY4";
             chart.Series[seriesKey].MarkerSize = 10;
             chart.Series[seriesKey].MarkerColor = color;
             chart.Series[seriesKey].ChartArea = chartArea;
+            chart.Series[seriesKey].ToolTip = @"#VALX{d} #VALY";
         }
 
         /// <summary>
@@ -935,7 +943,35 @@ e:#VALY4";
                         }
                         //@@@
                     }
+                    this.periodData.Rows.Find(tgtDateStr)[GetEnumName(winLose)] = startPrice;
                     break;
+                }
+                if (i== rowAry.Length-1)
+                {
+                    // 最終日なら、それでもう決めちゃう
+                    DataRow arow = this.periodData.Rows.Find(tgtDateStr);
+                    if (sonneki >= 0)
+                    {
+                        if (buy == true)
+                        {
+                            arow[GetEnumName(keyWd.SIGNAL_POINT_BUY_2_WIN)] = arow[GetEnumName(keyWd.SIGNAL_POINT_BUY_2)];
+                        }
+                        else
+                        {
+                            arow[GetEnumName(keyWd.SIGNAL_POINT_SELL_2_WIN)] = arow[GetEnumName(keyWd.SIGNAL_POINT_SELL_2)];
+                        }
+                    }
+                    else
+                    {
+                        if (buy == true)
+                        {
+                            arow[GetEnumName(keyWd.SIGNAL_POINT_BUY_2_LOSE)] = arow[GetEnumName(keyWd.SIGNAL_POINT_BUY_2)];
+                        }
+                        else
+                        {
+                            arow[GetEnumName(keyWd.SIGNAL_POINT_SELL_2_LOSE)] = arow[GetEnumName(keyWd.SIGNAL_POINT_SELL_2)];
+                        }
+                    }
                 }
 #else
                     int todayEma8 = (int)rowAry[i][GetEnumName(keyWd.EMA8)];
@@ -971,7 +1007,6 @@ e:#VALY4";
                 prevEma8 = todayEma8;
 #endif
             }
-            this.periodData.Rows.Find(tgtDateStr)[GetEnumName(winLose)] = startPrice;
 
             orgRow["利確日"] = dtEnd;
             orgRow["損益"] = sonneki;
@@ -1058,6 +1093,11 @@ e:#VALY4";
             CreateWholeData(dataList);
 
             return true;
+        }
+
+        private void checkBoxCandle_CheckedChanged(object sender, EventArgs e)
+        {
+            SetChart1();
         }
     }
 }
