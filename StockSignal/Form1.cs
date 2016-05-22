@@ -17,6 +17,7 @@ namespace StockSignal
 
     /// 
     /// EMA1=12, EMA2=26 の値を色々変えてみたけど、MACDを元にした勝率は特に変わらなかった
+    /// RSI も別にってカンジ
     ///
 
 #if false
@@ -46,9 +47,10 @@ namespace StockSignal
     public partial class Form1 : Form
     {
         const int Ave20Max = 20;
+        const int Rsi14Max = 10;
 
         // 全体データ
-        DataTable wholeData = new DataTable();
+        DataTable wholeData = null;
 
         // 期間データ
         DataTable periodData = new DataTable();
@@ -81,6 +83,7 @@ namespace StockSignal
             MACD,
             MACD_SIG,
             MACD_OSCI,
+            RSI,
             SIGNAL,
             //SIGNAL_POINT_BUY_1,         // グラフ1 買いシグナル
             //SIGNAL_POINT_SELL_1,        // グラフ1 売りシグナル
@@ -143,50 +146,32 @@ namespace StockSignal
             }
         }
 
+        /// <summary>
+        /// 利益率を変更しながら損益を算出し、損益順の DataTable を生成する
+        /// </summary>
         private void CalcOptProfit()
         {
-            // DataGridView 表示
-            // 必要項目を抽出した DataTable を生成し、DataGridView のソースにする
             DataRow[] dataRowAry = this.periodData.Select(string.Format("{0} <> ''", GetEnumName(keyWd.SIGNAL)));
-            DataTable data4Grid = new DataTable();
-            data4Grid.Columns.Add(GetEnumName(keyWd.SIGNAL), typeof(string));
-            data4Grid.Columns.Add(GetEnumName(keyWd.DATE), typeof(DateTime));
-            data4Grid.Columns.Add("取得価格", typeof(int));
-            data4Grid.Columns.Add("利確日", typeof(DateTime));
-            data4Grid.Columns.Add("損益", typeof(int));
-
-            double rieki = (double)this.numericUpDownRieki.Value / 100.0;
-            double sonsitu = (double)this.numericUpDownSon.Value / 100.0 * (-1.0);
 
             DataTable dataSonneki = new DataTable();
             dataSonneki.Columns.Add("+割合", typeof(double));
             dataSonneki.Columns.Add("-割合", typeof(double));
             dataSonneki.Columns.Add("損益", typeof(int));
-            int sonneki = 0;
             for (int ri = 1; ri <= 10; ri += 1)
             {
                 int tmpri = ri;
                 for (int so = 1; so <= 10; so += 1)
                 {
-                    if (so > ri)
-                    {
-                        break;
-                    }
+                    //if (so > ri)
+                    //{
+                    //    break;
+                    //}
                     double tmpso = so;
-                    sonneki = 0;
+                    int sonneki = 0;
                     TimeSpan span = TimeSpan.MinValue;
                     foreach (DataRow r in dataRowAry)
                     {
-                        DataRow tmpr = data4Grid.NewRow();
-                        tmpr[GetEnumName(keyWd.SIGNAL)] = r[GetEnumName(keyWd.SIGNAL)];
-                        tmpr[GetEnumName(keyWd.DATE)] = r[GetEnumName(keyWd.DATE)];
-                        tmpr["取得価格"] = r[GetEnumName(keyWd.END)];
-
-#if false
-                        sonneki += CalcOptTgtDayProfit(tmpr, tmpri, tmpso, ref span);
-#else
-                        sonneki += CalcTgtDayProfit(tmpr, tmpri, tmpso, ref span, false);
-#endif
+                        sonneki += CalcTgtDayProfit(r, tmpri, tmpso, ref span, false);
                     }
                     DataRow nr = dataSonneki.NewRow();
                     nr["+割合"] = tmpri;
@@ -271,10 +256,11 @@ namespace StockSignal
             // 必要項目を抽出した DataTable を生成し、DataGridView のソースにする
             DataRow[] dataRowAry = this.periodData.Select(string.Format("{0} <> ''", GetEnumName(keyWd.SIGNAL)));
             DataTable data4Grid = new DataTable();
-            data4Grid.Columns.Add(GetEnumName(keyWd.SIGNAL), typeof(string));
+            data4Grid.Columns.Add("SIG", typeof(string));
             data4Grid.Columns.Add(GetEnumName(keyWd.DATE), typeof(DateTime));
-            data4Grid.Columns.Add("取得価格", typeof(int));
+            data4Grid.Columns.Add("入値", typeof(int));
             data4Grid.Columns.Add("span", typeof(int));
+            data4Grid.Columns.Add("osci", typeof(int));
             data4Grid.Columns.Add("利確日", typeof(DateTime));
             data4Grid.Columns.Add("損益", typeof(int));
 
@@ -282,10 +268,11 @@ namespace StockSignal
             foreach (DataRow r in dataRowAry)
             {
                 DataRow tmpr = data4Grid.NewRow();
-                tmpr[GetEnumName(keyWd.SIGNAL)] = r[GetEnumName(keyWd.SIGNAL)];
+                tmpr["SIG"] = r[GetEnumName(keyWd.SIGNAL)];
                 tmpr[GetEnumName(keyWd.DATE)] = r[GetEnumName(keyWd.DATE)];
                 string datestr = ((DateTime)r[GetEnumName(keyWd.DATE)]).ToString("yyyy/MM/dd");
-                tmpr["取得価格"] = r[GetEnumName(keyWd.END)];
+                tmpr["入値"] = r[GetEnumName(keyWd.END)];
+                tmpr["osci"] = r[GetEnumName(keyWd.MACD_OSCI)];
                 data4Grid.Rows.Add(tmpr);
 
                 CalcTgtDayProfit(tmpr, (double)this.numericUpDownRieki.Value, (double)this.numericUpDownSon.Value, ref span, true);
@@ -337,7 +324,7 @@ namespace StockSignal
             int priceMin = int.MaxValue;
             int priceMax = int.MinValue;
 
-            this.wholeData.Clear();
+            this.wholeData = new DataTable();
 
             foreach (keyWd key in Enum.GetValues(typeof(keyWd)))
             {
@@ -349,6 +336,10 @@ namespace StockSignal
                 {
                     this.wholeData.Columns.Add(GetEnumName(key), typeof(string));
                 }
+                else if (key == keyWd.RSI)
+                {
+                    this.wholeData.Columns.Add(GetEnumName(key), typeof(double));
+                }
                 else
                 {
                     this.wholeData.Columns.Add(GetEnumName(key), typeof(int));
@@ -356,7 +347,8 @@ namespace StockSignal
             }
             this.wholeData.PrimaryKey = new DataColumn[] { this.wholeData.Columns[GetEnumName(keyWd.DATE)] };
 
-            Queue<int> ave20Queue = new Queue<int>(20);
+            Queue<int> ave20Queue = new Queue<int>(Ave20Max);
+            Queue<int> rsi14Queue = new Queue<int>(Rsi14Max);
 
             double alpha9 = GetAlpha(9);
             double alpha12 = GetAlpha((int)this.numericUpDown1.Value);
@@ -382,6 +374,9 @@ namespace StockSignal
                 }
                 int todayMacdSig = GetEMA(prevMacdSig, todayMacd, alpha9);
 
+                // RSI
+                double rsi = GetRsi(tmp.end, rsi14Queue);
+
                 // 20日移動平均
                 int ave20 = GetAve20(tmp.end, ave20Queue);
 
@@ -403,6 +398,7 @@ namespace StockSignal
                 r[GetEnumName(keyWd.BB_PLUS2)] = bbp2;
                 r[GetEnumName(keyWd.BB_MINUS1)] = bbm1;
                 r[GetEnumName(keyWd.BB_MINUS2)] = bbm2;
+                r[GetEnumName(keyWd.RSI)] = rsi;
 
 
                 this.wholeData.Rows.Add(r);
@@ -450,6 +446,46 @@ namespace StockSignal
             return ave;
         }
 
+        private double GetRsi(int val, Queue<int> rsi14Queue)
+        {
+            int ave = 0;
+            if (rsi14Queue.Count == Rsi14Max)
+            {
+                rsi14Queue.Dequeue();
+            }
+            rsi14Queue.Enqueue(val);
+
+            if (rsi14Queue.Count != Rsi14Max)
+            {
+                // 最初の方は無視
+                return 0;
+            }
+
+            int[] ary = rsi14Queue.ToArray();
+
+            int sumP = 0;
+            int sumM = 0;
+            for (int i = 1; i < ary.Length; i++)
+            {
+                int v = ary[i] - ary[i - 1];
+                if (v > 0)
+                {
+                    sumP += v;
+                } else
+                {
+                    sumM += v;
+                }
+            }
+            sumM *= (-1);
+
+            int count = Rsi14Max - 1;
+            double a = (double)sumP / count;
+            double b = (double)sumM / count;
+
+            double rsi = (a / (a + b)) * 100;
+            return rsi;
+        }
+
         /// <summary>
         /// EMA を変更して wholeData を計算しなおす
         /// </summary>
@@ -484,6 +520,7 @@ namespace StockSignal
                 newRow[GetEnumName(keyWd.BB_MINUS2)] = r[GetEnumName(keyWd.BB_MINUS2)];
                 newRow[GetEnumName(keyWd.BB_PLUS1)] = r[GetEnumName(keyWd.BB_PLUS1)];
                 newRow[GetEnumName(keyWd.BB_PLUS2)] = r[GetEnumName(keyWd.BB_PLUS2)];
+                newRow[GetEnumName(keyWd.RSI)] = r[GetEnumName(keyWd.RSI)];
 
                 int tmpend = (int)r[GetEnumName(keyWd.END)];
                 int todayEma12 = GetEMA(prevEma12, tmpend, alpha12);
@@ -501,9 +538,6 @@ namespace StockSignal
                     prevMacdSig = todayMacd;
                 }
                 int todayMacdSig = GetEMA(prevMacdSig, todayMacd, alpha9);
-                //@@@
-                string datestr = ((DateTime)r[GetEnumName(keyWd.DATE)]).ToString("yyyy/MM/dd");
-                //@@@
 
                 // シグナル算出
                 string signal = string.Empty;
@@ -641,6 +675,7 @@ e:#VALY4";
             SetTypeLineSeries(SeriesChartType.Column, this.chart1, GetEnumName(keyWd.MACD_OSCI), "date", "ChartArea2", Color.LightGray);
             SetTypeLineSeries(SeriesChartType.Line, this.chart1, GetEnumName(keyWd.MACD), "date", "ChartArea2", Color.Purple);
             SetTypeLineSeries(SeriesChartType.Line, this.chart1, GetEnumName(keyWd.MACD_SIG), "date", "ChartArea2", Color.Green);
+            //SetTypeLineSeries(SeriesChartType.Line, this.chart1, GetEnumName(keyWd.RSI), "date", "ChartArea3", Color.Black);
 
             // シグナル表示のポイントグラフ設定
             SetTypePointSeries(this.chart1, GetEnumName(keyWd.SIGNAL_POINT_BUY_2_WIN), "date", MarkerStyle.Circle, Color.Black, "ChartArea2");
@@ -649,12 +684,14 @@ e:#VALY4";
             SetTypePointSeries(this.chart1, GetEnumName(keyWd.SIGNAL_POINT_SELL_2_LOSE), "date", MarkerStyle.Cross, Color.Red, "ChartArea2");
 
             // 表示領域調整
-            this.chart1.ChartAreas[1].InnerPlotPosition.Auto = false;
-            this.chart1.ChartAreas[1].InnerPlotPosition.Width = 90;
-            this.chart1.ChartAreas[1].InnerPlotPosition.Height = 90;
-            this.chart1.ChartAreas[1].InnerPlotPosition.X = 10;
-            this.chart1.ChartAreas[1].InnerPlotPosition.Y = 5;
-
+            for (int i = 0; i < this.chart1.ChartAreas.Count; i++)
+            {
+                this.chart1.ChartAreas[i].InnerPlotPosition.Auto = false;
+                this.chart1.ChartAreas[i].InnerPlotPosition.Width = 90;
+                this.chart1.ChartAreas[i].InnerPlotPosition.Height = 90;
+                this.chart1.ChartAreas[i].InnerPlotPosition.X = 10;
+                this.chart1.ChartAreas[i].InnerPlotPosition.Y = 5;
+            }
         }
 
         /// <summary>
@@ -857,17 +894,40 @@ e:#VALY4";
                 return 0;
             }
 
+            DataRow tgtRow = this.periodData.Rows.Find(tgtDateStr);
+
+            string tgtClmnName = string.Empty;
+            int signal_point = 0;
+            if (tgtRow.IsNull(GetEnumName(keyWd.SIGNAL_POINT_BUY_2)) == false)
+            {
+                signal_point = (int)tgtRow[GetEnumName(keyWd.SIGNAL_POINT_BUY_2)];
+            }
+            else
+            {
+                signal_point = (int)tgtRow[GetEnumName(keyWd.SIGNAL_POINT_SELL_2)];
+            }
+
             rieki /= 100.0;
             sonsitu /= 100.0 * (-1.0);
             int startPrice = (int)rowAry[0][GetEnumName(keyWd.START)];
+            if (rowAry.Length > 1)
+            {
+                // 次の日の始値で買うことにする
+                startPrice = (int)rowAry[1][GetEnumName(keyWd.START)];
+            }
             int sonneki = 0;
             bool isRikaku = false;
             bool buy = (string)rowAry[0][GetEnumName(keyWd.SIGNAL)] == "買い";
+            bool nextbuy = buy;
             keyWd winLose = keyWd.SIGNAL_POINT_BUY_1_WIN;
             DateTime dtEnd = DateTime.MinValue;
             int prevEma8 = int.MaxValue;
             for (int i = 1; i < rowAry.Length; i++)
             {
+                if ((string)rowAry[i][GetEnumName(keyWd.SIGNAL)] != string.Empty)
+                {
+                    nextbuy = (string)rowAry[i][GetEnumName(keyWd.SIGNAL)] == "買い" ? true : false;
+                }
                 int start = (int)rowAry[i][GetEnumName(keyWd.START)];
                 int end = (int)rowAry[i][GetEnumName(keyWd.END)];
                 int min = (int)rowAry[i][GetEnumName(keyWd.MIN)];
@@ -880,106 +940,64 @@ e:#VALY4";
                     sonneki *= -1;
                 }
 
+                dtEnd = (DateTime)rowAry[i][GetEnumName(keyWd.DATE)];
+                span = dtEnd - dttgtDate;
 #if true
                 if (wariai >= rieki || wariai <= sonsitu)
                 {
-                    DataRow arow = this.periodData.Rows.Find(tgtDateStr);
+                    //dtEnd = (DateTime)rowAry[i][GetEnumName(keyWd.DATE)];
+                    //span = dtEnd - dttgtDate;
                     if (wariai >= rieki)
                     {
-                        winLose = buy == true ? keyWd.SIGNAL_POINT_BUY_1_WIN : keyWd.SIGNAL_POINT_SELL_1_WIN;
-                        //@@@
+                        // 勝ち
+                        // 利益が一定以上かつ期間が一定以内
                         if (buy == true)
                         {
-                            arow[GetEnumName(keyWd.SIGNAL_POINT_BUY_2_WIN)] = arow[GetEnumName(keyWd.SIGNAL_POINT_BUY_2)];
+                            winLose = keyWd.SIGNAL_POINT_BUY_1_WIN;
+                            tgtClmnName = GetEnumName(keyWd.SIGNAL_POINT_BUY_2_WIN);
                         }
                         else
                         {
-                            arow[GetEnumName(keyWd.SIGNAL_POINT_SELL_2_WIN)] = arow[GetEnumName(keyWd.SIGNAL_POINT_SELL_2)];
+                            winLose = keyWd.SIGNAL_POINT_SELL_1_WIN;
+                            tgtClmnName = GetEnumName(keyWd.SIGNAL_POINT_SELL_2_WIN);
                         }
-                        //@@@
                     }
                     else
                     {
-                        winLose = buy == true ? keyWd.SIGNAL_POINT_BUY_1_LOSE : keyWd.SIGNAL_POINT_SELL_1_LOSE;
-                        //@@@
-                        if (buy == true)
-                        {
-                            arow[GetEnumName(keyWd.SIGNAL_POINT_BUY_2_LOSE)] = arow[GetEnumName(keyWd.SIGNAL_POINT_BUY_2)];
-                        }
-                        else
-                        {
-                            arow[GetEnumName(keyWd.SIGNAL_POINT_SELL_2_LOSE)] = arow[GetEnumName(keyWd.SIGNAL_POINT_SELL_2)];
-                        }
-                        //@@@
-                    }
-                    dtEnd = (DateTime)rowAry[i][GetEnumName(keyWd.DATE)];
-                    span = dtEnd - dttgtDate;
-                    if (updateRow == true)
-                    {
-                        orgRow["span"] = span.Days;
-                    }
-                    if (span.Days > 100)
-                    {
-                        winLose = buy == true ? keyWd.SIGNAL_POINT_BUY_1_LOSE : keyWd.SIGNAL_POINT_SELL_1_LOSE;
+                        // 負け
+                        // 損失が一定以下、または期間が一定以上
                         if (sonneki > 0)
                         {
                             sonneki *= -1;
                         }
-                        //@@@
                         if (buy == true)
                         {
-                            arow[GetEnumName(keyWd.SIGNAL_POINT_BUY_2_LOSE)] = arow[GetEnumName(keyWd.SIGNAL_POINT_BUY_2)];
+                            winLose = keyWd.SIGNAL_POINT_BUY_1_LOSE;
+                            tgtClmnName = GetEnumName(keyWd.SIGNAL_POINT_BUY_2_LOSE);
                         }
                         else
                         {
-                            arow[GetEnumName(keyWd.SIGNAL_POINT_SELL_2_LOSE)] = arow[GetEnumName(keyWd.SIGNAL_POINT_SELL_2)];
+                            winLose = keyWd.SIGNAL_POINT_SELL_1_LOSE;
+                            tgtClmnName = GetEnumName(keyWd.SIGNAL_POINT_SELL_2_LOSE);
                         }
-                        //@@@
                     }
-                    if (updateRow == true)
-                    {
-                        this.periodData.Rows.Find(tgtDateStr)[GetEnumName(winLose)] = startPrice;
-                    }
+
                     break;
                 }
-                if (i == rowAry.Length - 1)
-                {
-                    // 最終日なら、それでもう決めちゃう
-                    DataRow arow = this.periodData.Rows.Find(tgtDateStr);
-                    if (sonneki >= 0)
-                    {
-                        if (buy == true)
-                        {
-                            arow[GetEnumName(keyWd.SIGNAL_POINT_BUY_2_WIN)] = arow[GetEnumName(keyWd.SIGNAL_POINT_BUY_2)];
-                        }
-                        else
-                        {
-                            arow[GetEnumName(keyWd.SIGNAL_POINT_SELL_2_WIN)] = arow[GetEnumName(keyWd.SIGNAL_POINT_SELL_2)];
-                        }
-                    }
-                    else
-                    {
-                        if (buy == true)
-                        {
-                            arow[GetEnumName(keyWd.SIGNAL_POINT_BUY_2_LOSE)] = arow[GetEnumName(keyWd.SIGNAL_POINT_BUY_2)];
-                        }
-                        else
-                        {
-                            arow[GetEnumName(keyWd.SIGNAL_POINT_SELL_2_LOSE)] = arow[GetEnumName(keyWd.SIGNAL_POINT_SELL_2)];
-                        }
-                    }
-                }
 #else
-                    int todayEma8 = (int)rowAry[i][GetEnumName(keyWd.EMA8)];
-                if (wariai >= rieki || isRikaku == true)
+                int todayEma8 = (int)rowAry[i][GetEnumName(keyWd.EMA8)];
+
+                if ((wariai >= rieki || isRikaku == true) && span.Days <= 100)
                 {
                     isRikaku = true;
+#if false
                     // 5%を超えたら、指数平滑移動平均線(8日)が下向きになるまで利確しない
                     if (buy == true)
                     {
                         if (wariai < rieki || todayEma8 - prevEma8 < 0)
                         {
                             winLose = keyWd.SIGNAL_POINT_BUY_1_WIN;
+                            tgtClmnName = GetEnumName(keyWd.SIGNAL_POINT_BUY_2_WIN);
                             dtEnd = (DateTime)rowAry[i][GetEnumName(keyWd.DATE)];
                             break;
                         }
@@ -989,25 +1007,135 @@ e:#VALY4";
                         if (wariai < rieki || todayEma8 - prevEma8 > 0)
                         {
                             winLose = keyWd.SIGNAL_POINT_SELL_1_WIN;
+                            tgtClmnName = GetEnumName(keyWd.SIGNAL_POINT_SELL_2_WIN);
                             dtEnd = (DateTime)rowAry[i][GetEnumName(keyWd.DATE)];
                             break;
                         }
                     }
+#else
+                    // 5%を超えたら、終値が指数平滑移動平均線(8日)より下になるまで利確しない
+                    if (buy == true)
+                    {
+                        if (wariai < rieki || end < todayEma8)
+                        {
+                            winLose = keyWd.SIGNAL_POINT_BUY_1_WIN;
+                            tgtClmnName = GetEnumName(keyWd.SIGNAL_POINT_BUY_2_WIN);
+                            dtEnd = (DateTime)rowAry[i][GetEnumName(keyWd.DATE)];
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        if (wariai < rieki || end > todayEma8)
+                        {
+                            winLose = keyWd.SIGNAL_POINT_SELL_1_WIN;
+                            tgtClmnName = GetEnumName(keyWd.SIGNAL_POINT_SELL_2_WIN);
+                            dtEnd = (DateTime)rowAry[i][GetEnumName(keyWd.DATE)];
+                            break;
+                        }
+                    }
+#endif
                 }
-                if (wariai <= sonsitu)
+                if (wariai <= sonsitu || span.Days > 100)
                 {
+                    if (sonneki > 0)
+                    {
+                        sonneki *= -1;
+                    }
                     winLose = buy == true ? keyWd.SIGNAL_POINT_BUY_1_LOSE : keyWd.SIGNAL_POINT_SELL_1_LOSE;
+                    if (buy == true)
+                    {
+                        winLose = keyWd.SIGNAL_POINT_BUY_1_LOSE;
+                        tgtClmnName = GetEnumName(keyWd.SIGNAL_POINT_BUY_2_LOSE);
+                    }
+                    else
+                    {
+                        winLose = keyWd.SIGNAL_POINT_SELL_1_LOSE;
+                        tgtClmnName = GetEnumName(keyWd.SIGNAL_POINT_SELL_2_LOSE);
+                    }
+
                     dtEnd = (DateTime)rowAry[i][GetEnumName(keyWd.DATE)];
                     break;
                 }
                 prevEma8 = todayEma8;
 #endif
+
+                if (i == rowAry.Length - 1 || buy != nextbuy || span.Days > 60)
+                {
+                    // 以下の場合は取引終了
+                    // ・最終日
+                    // ・シグナルが変わった
+                    // ・期間が一定以上
+                    if (updateRow == true)
+                    {
+#if false
+                        if (sonneki >= 0)
+                        {
+                            if (buy == true)
+                            {
+                                //tgtRow[GetEnumName(keyWd.SIGNAL_POINT_BUY_2_WIN)] = tgtRow[GetEnumName(keyWd.SIGNAL_POINT_BUY_2)];
+                                //tgtClmnName = GetEnumName(keyWd.SIGNAL_POINT_BUY_2_WIN);
+                            }
+                            else
+                            {
+                                tgtRow[GetEnumName(keyWd.SIGNAL_POINT_SELL_2_WIN)] = tgtRow[GetEnumName(keyWd.SIGNAL_POINT_SELL_2)];
+                                tgtClmnName = GetEnumName(keyWd.SIGNAL_POINT_SELL_2_WIN);
+                            }
+                        }
+                        else
+                        {
+                            if (buy == true)
+                            {
+                                tgtRow[GetEnumName(keyWd.SIGNAL_POINT_BUY_2_LOSE)] = tgtRow[GetEnumName(keyWd.SIGNAL_POINT_BUY_2)];
+                                tgtClmnName = GetEnumName(keyWd.SIGNAL_POINT_BUY_2_LOSE);
+                            }
+                            else
+                            {
+                                tgtRow[GetEnumName(keyWd.SIGNAL_POINT_SELL_2_LOSE)] = tgtRow[GetEnumName(keyWd.SIGNAL_POINT_SELL_2)];
+                                tgtClmnName = GetEnumName(keyWd.SIGNAL_POINT_SELL_2_LOSE);
+                            }
+                        }
+#else
+                        if (sonneki >= 0)
+                        {
+                            if (buy == true)
+                            {
+                                winLose = keyWd.SIGNAL_POINT_BUY_1_WIN;
+                                tgtClmnName = GetEnumName(keyWd.SIGNAL_POINT_BUY_2_WIN);
+                            }
+                            else
+                            {
+                                winLose = keyWd.SIGNAL_POINT_SELL_1_WIN;
+                                tgtClmnName = GetEnumName(keyWd.SIGNAL_POINT_SELL_2_WIN);
+                            }
+                        }
+                        else
+                        {
+                            if (buy == true)
+                            {
+                                winLose = keyWd.SIGNAL_POINT_BUY_1_LOSE;
+                                tgtClmnName = GetEnumName(keyWd.SIGNAL_POINT_BUY_2_LOSE);
+                            }
+                            else
+                            {
+                                winLose = keyWd.SIGNAL_POINT_SELL_1_LOSE;
+                                tgtClmnName = GetEnumName(keyWd.SIGNAL_POINT_SELL_2_LOSE);
+                            }
+                        }
+#endif
+                    }
+                    break;
+                }
             }
 
             if (updateRow == true)
             {
+                tgtRow[tgtClmnName] = signal_point;
+                this.periodData.Rows.Find(tgtDateStr)[GetEnumName(winLose)] = startPrice;
+
                 orgRow["利確日"] = dtEnd;
                 orgRow["損益"] = sonneki;
+                orgRow["span"] = span.Days;
             }
             return sonneki;
         }

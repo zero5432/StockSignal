@@ -54,10 +54,10 @@
             this.dataGridView3 = new System.Windows.Forms.DataGridView();
             this.checkBoxBollingerband = new System.Windows.Forms.CheckBox();
             this.panel1 = new System.Windows.Forms.Panel();
+            this.checkBoxCandle = new System.Windows.Forms.CheckBox();
             this.buttonInput = new System.Windows.Forms.Button();
             this.textBoxInput = new System.Windows.Forms.TextBox();
             this.buttonLoad = new System.Windows.Forms.Button();
-            this.checkBoxCandle = new System.Windows.Forms.CheckBox();
             ((System.ComponentModel.ISupportInitialize)(this.chart1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown1)).BeginInit();
@@ -382,6 +382,20 @@
             this.panel1.Size = new System.Drawing.Size(844, 67);
             this.panel1.TabIndex = 28;
             // 
+            // checkBoxCandle
+            // 
+            this.checkBoxCandle.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.checkBoxCandle.AutoSize = true;
+            this.checkBoxCandle.Checked = true;
+            this.checkBoxCandle.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.checkBoxCandle.Location = new System.Drawing.Point(719, 37);
+            this.checkBoxCandle.Name = "checkBoxCandle";
+            this.checkBoxCandle.Size = new System.Drawing.Size(72, 16);
+            this.checkBoxCandle.TabIndex = 30;
+            this.checkBoxCandle.Text = "ローソク足";
+            this.checkBoxCandle.UseVisualStyleBackColor = true;
+            this.checkBoxCandle.CheckedChanged += new System.EventHandler(this.checkBoxCandle_CheckedChanged);
+            // 
             // buttonInput
             // 
             this.buttonInput.Location = new System.Drawing.Point(465, 11);
@@ -412,20 +426,6 @@
             this.buttonLoad.Text = "Load";
             this.buttonLoad.UseVisualStyleBackColor = true;
             this.buttonLoad.Click += new System.EventHandler(this.buttonLoad_Click);
-            // 
-            // checkBoxCandle
-            // 
-            this.checkBoxCandle.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.checkBoxCandle.AutoSize = true;
-            this.checkBoxCandle.Checked = true;
-            this.checkBoxCandle.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBoxCandle.Location = new System.Drawing.Point(719, 37);
-            this.checkBoxCandle.Name = "checkBoxCandle";
-            this.checkBoxCandle.Size = new System.Drawing.Size(72, 16);
-            this.checkBoxCandle.TabIndex = 30;
-            this.checkBoxCandle.Text = "ローソク足";
-            this.checkBoxCandle.UseVisualStyleBackColor = true;
-            this.checkBoxCandle.CheckedChanged += new System.EventHandler(this.checkBoxCandle_CheckedChanged);
             // 
             // Form1
             // 
